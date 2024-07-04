@@ -1,5 +1,4 @@
-anobii2goodreads
-================
+# anobii2goodreads
 
 Another script to convert a CSV export from the Anobii website
 to a CSV similar to Goodreads export, which could be imported on Goodreads via
@@ -8,10 +7,9 @@ the [import page](http://www.goodreads.com/review/import), or on [The StoryGraph
 > [!WARNING]
 > The script has been updated to have valid data structure as of **July 2024**.
 
-Inspired by https://github.com/tijs/Anobii2Goodreads.
+Inspired by [tijs/Anobii2Goodreads](https://github.com/tijs/Anobii2Goodreads).
 
-Usage
-=====
+## Usage
 
 To convert `anobii.csv` to `anobii_converted.csv`:
 
