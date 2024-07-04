@@ -13,7 +13,7 @@ which was in turn inspired by [tijs/Anobii2Goodreads](https://github.com/tijs/An
 
 ## Usage
 
-### 1. Get your Anobii data
+### 1. Export
 
 Go on your Anobii profile and export your data as CSV. 
 
