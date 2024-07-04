@@ -6,18 +6,19 @@ import logging
 import re
 
 import pyisbn
-
 from config import CONFIG
 
 
 class Anobii2GoodReads(object):
     """Convert Anobii CSV to Goodreads CSV."""
 
-    OUTPUT_HEADERS = ['Title', 'Author', 'Additional Authors', 'ISBN',
-                      'ISBN13', 'My Rating', 'Publisher', 'Binding',
-                      'Number of Pages', 'Year Published', 'Date Read',
-                      'Date Added', 'Bookshelves', 'My Review',
-                      'Private Notes']
+    OUTPUT_HEADERS = ['Book Id', 'Title', 'Author', 'Author l-f', 'Additional Authors',
+                      'ISBN', 'ISBN13', 'My Rating', 'Average Rating', 'Publisher',
+                      'Binding', 'Number of Pages', 'Year Published',
+                      'Original Publication Year', 'Date Read', 'Date Added',
+                      'Bookshelves', 'Bookshelves with positions', 'Exclusive Shelf',
+                      'My Review', 'Spoiler', 'Private Notes', 'Read Count',
+                      'Owned Copies']
 
     @staticmethod
     def _convert_linebreak(line):
@@ -26,6 +27,7 @@ class Anobii2GoodReads(object):
             return line.replace('\r\n', '\n').replace('\n', '<br>')
         else:
             return None
+
 
     @staticmethod
     def _convert_comment(title, content):
@@ -37,6 +39,12 @@ class Anobii2GoodReads(object):
             return content
         else:
             return None
+
+    @staticmethod
+    def _parse_status(status):
+        text = status[:-10].rstrip()
+        date = status[-10:].replace('-','/')
+        return text, date
 
     @staticmethod
     def _convert_date(status):
@@ -78,7 +86,7 @@ class Anobii2GoodReads(object):
 
         if self.detect_strings['Not Started'] in text:
             bookshelves = ['to-read']
-        elif self.detect_strings['Reading'] in text:
+        elif self.detect_strings['Being read'] in text:
             bookshelves.append('currently-reading')
             date_added = date
         elif self.detect_strings['Unfinished'] in text:
@@ -110,39 +118,38 @@ class Anobii2GoodReads(object):
             else:
                 return self._detect_status(date, status)
         else:
-            return None, None, None, ['to-read']
+            return None, None, ['to-read']
 
     def convert_entry(self, entry):
-        ISBN, TITLE, AUTHOR, FORMAT = 'ISBN', 'Title', 'Author', 'Format'
+        ISBN, TITLE, SUBTITLE = 'ISBN', 'Title', 'Subtitle' 
+        AUTHOR, FORMAT = 'Author', 'Format'
 
-        NUM_OF_PAGES, PRIVATE_NOTE = 'Number of pages', 'Private Note'
-        PUBLISHER, PUB_DATE = 'Publisher', 'Publication date'
+        NUM_OF_PAGES, PRIVATE_NOTES = 'Number of pages', 'Private notes'
+        PUBLISHER, PUB_DATE = 'Publisher', 'Date of publication'
 
-        COMMENT_TITLE, COMMENT_CONTENT = 'Comment title', 'Comment content'
-        STATUS, STARS = 'Status', 'Stars'
-
-        PRIORITY = 'Priority'
+        COMMENT_TITLE, COMMENT_CONTENT = 'Comment Title', 'Comment Content'
+        STATUS, VOTE = 'Reading status', 'Vote'
 
         TAGS = 'Tags'
 
         ISBN = self.headers[ISBN]
         TITLE = self.headers[TITLE]
+        SUBTITLE = self.headers[SUBTITLE]
         AUTHOR = self.headers[AUTHOR]
         FORMAT = self.headers[FORMAT]
         NUM_OF_PAGES = self.headers[NUM_OF_PAGES]
         PUBLISHER = self.headers[PUBLISHER]
         PUB_DATE = self.headers[PUB_DATE]
-        PRIVATE_NOTE = self.headers[PRIVATE_NOTE]
+        PRIVATE_NOTES = self.headers[PRIVATE_NOTES]
         COMMENT_TITLE = self.headers[COMMENT_TITLE]
         COMMENT_CONTENT = self.headers[COMMENT_CONTENT]
         STATUS = self.headers[STATUS]
-        STARS = self.headers[STARS]
-        PRIORITY = self.headers[PRIORITY]
+        VOTE = self.headers[VOTE]
         TAGS = self.headers[TAGS]
 
         title = entry.get(TITLE)
 
-        author, additional_authors = None, None
+        author, author_lf, additional_authors = None, '', None
         if AUTHOR in entry:
             all_authors = list(map(str.strip, entry[AUTHOR].split(',')))
             if len(all_authors) > 0:
@@ -150,18 +157,27 @@ class Anobii2GoodReads(object):
             if len(all_authors) > 1:
                 additional_authors = ', '.join(all_authors[1:])
 
-        isbn13 = entry.get(ISBN)
+        book_id = ''
+        isbn = entry.get(ISBN)
+        isbn13 = None
         isbn10 = None
-        if isbn13:
-            isbn13 = isbn13[1:-1]
-            try:
-                isbn10 = pyisbn.convert(isbn13)
 
-                if len(isbn13) == 10 and len(isbn10) == 13:
-                    isbn13, isbn10 = isbn10, isbn13
-            except pyisbn.IsbnError:
-                # ignore inconvertible ISBNs
-                pass
+        if (isbn):
+            if len(isbn) == 10:
+                isbn10 = isbn
+                try:
+                    isbn13 = pyisbn.convert(isbn10)
+                except pyisbn.IsbnError:
+                    # ignore inconvertible ISBNs
+                    pass
+            elif len(isbn) == 13:
+                isbn13 = isbn
+                try:
+                    isbn10 = pyisbn.convert(isbn13)
+                except pyisbn.IsbnError:
+                    # ignore inconvertible ISBNs
+                    pass
+            logging.warning(isbn10)
 
         publisher = entry.get(PUBLISHER)
         binding = entry.get(FORMAT)
@@ -169,40 +185,49 @@ class Anobii2GoodReads(object):
 
         year_published = entry.get(PUB_DATE)
         if year_published:
-            year_published = year_published[1:-1].replace('-', '/')
+            year_published = year_published.replace('-', '/').replace('xx','01')
+        original_year_published = ''
 
-        private_notes = self._convert_linebreak(entry.get(PRIVATE_NOTE))
+        private_notes = self._convert_linebreak(entry.get(PRIVATE_NOTES))
 
-        # wishlist
-        if PRIORITY in entry:
-            bookshelves = ['to-read']
-            my_rating = my_review = date_read = date_added = None
-        # bookshelve
-        else:
-            my_rating = entry.get(STARS)
-            my_review = self._convert_comment(
-                entry.get(COMMENT_TITLE), entry.get(COMMENT_CONTENT))
+        my_rating = entry.get(VOTE)
+        avg_rating = ''
+        my_review = self._convert_comment(
+            entry.get(COMMENT_TITLE), entry.get(COMMENT_CONTENT))
 
-            tags = entry.get(TAGS)
-            status = entry.get(STATUS)
-            date_read, date_added, bookshelves = self._convert_status(status,
-                                                                      tags)
+        spoiler = ''
+        tags = entry.get(TAGS)
+        status = entry.get(STATUS)
+        date_read, date_added, bookshelves = self._convert_status(status,
+                                                                    tags)
+        bookshelves_w_pos = ''
+        exclusive_shelf = ''
 
-            if len(bookshelves) == 0:
-                logging.warning('cannot parse %s: %s', title, status)
+        if len(bookshelves) == 0:
+            logging.warning('cannot parse %s: %s', title, status)
+        elif len(bookshelves) == 1:
+            exclusive_shelf = bookshelves[0]
+
+        read_count = 0 if exclusive_shelf == 'to-read' else 1
+        owned_copies = 0 if exclusive_shelf == 'to-read' else 1
 
         if self.only_isbn:
+            book_id = ''
             title = ''
             author = ''
+            author_lf = ''
             additional_authors = ''
             publisher = ''
             binding = ''
             num_of_pages = ''
             year_published = ''
+            original_year_published = ''
 
-        return (title, author, additional_authors, isbn10, isbn13, my_rating,
-                publisher, binding, num_of_pages, year_published, date_read,
-                date_added, ','.join(bookshelves), my_review, private_notes)
+        return (book_id, title, author, author_lf, additional_authors, isbn10, isbn13,
+                my_rating, avg_rating, publisher, binding, num_of_pages, year_published,
+                original_year_published, date_read, date_added, ','.join(bookshelves),
+                bookshelves_w_pos, exclusive_shelf, my_review, spoiler, private_notes,
+                read_count, owned_copies)
 
     def __init__(self, *, detect_strings, headers, only_isbn):
         self.detect_strings = detect_strings
@@ -253,8 +278,9 @@ def main():
         not_convertable = []
         goodreads_writer.writerow(a2g.OUTPUT_HEADERS)
         for entry in anobii_reader:
-            isbn13 = entry.get('ISBN')
-            if not isbn13:
+            isbn = entry.get('ISBN')
+            # Skip book with no ISBN provided
+            if not isbn:
                 not_convertable.append(entry)
                 continue
 
