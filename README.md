@@ -10,7 +10,8 @@ Inspired by https://github.com/tijs/Anobii2Goodreads.
 Warning
 =======
 
-Since these scripts haven not been updated or tested for a long time, it's possible that aNobii & Goodreads have already changed their website, and the scripts might no longer work.
+The script has been updated to have valid data structure as of July 2024.
+The exported CSV can be imported both on Goodreads, as well as on TheStoryGraph (Manage Account > Goodreads Import).
 
 Usage
 =====
