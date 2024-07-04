@@ -7,7 +7,7 @@ the [import page](http://www.goodreads.com/review/import), or on [The StoryGraph
 > [!WARNING]
 > The script has been updated to have valid data structure as of **July 2024**.
 
-Inspired by [tijs/Anobii2Goodreads](https://github.com/tijs/Anobii2Goodreads).
+This is an updated and slightly modified version of [shaform/anobii2goodreads](https://github.com/shaform/anobii2goodreads), which was inspired by [tijs/Anobii2Goodreads](https://github.com/tijs/Anobii2Goodreads).
 
 ## Usage
 
