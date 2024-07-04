@@ -94,6 +94,7 @@ class Anobii2GoodReads(object):
             date_added = date
         elif self.detect_strings['Finished'] in text:
             bookshelves = ['read']
+            date_added = date
             date_read = date
         elif self.detect_strings['Reference'] in text:
             bookshelves = ['reference']
@@ -106,7 +107,7 @@ class Anobii2GoodReads(object):
 
     def _convert_status(self, status, tags):
         if status:
-            date = self._convert_date(status)
+            text, date = self._parse_status(status)
             if tags is not None:
                 tag_items = {tag.strip() for tag in tags.split('/')}
             else:
@@ -116,9 +117,9 @@ class Anobii2GoodReads(object):
                 return self._detect_status(date, tag_items)
 
             else:
-                return self._detect_status(date, status)
+                return self._detect_status(date, text)
         else:
-            return None, None, ['to-read']
+            return None, '2024/01/01', ['to-read']
 
     def convert_entry(self, entry):
         ISBN, TITLE, SUBTITLE = 'ISBN', 'Title', 'Subtitle' 
