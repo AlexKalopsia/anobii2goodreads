@@ -177,7 +177,6 @@ class Anobii2GoodReads(object):
                 except pyisbn.IsbnError:
                     # ignore inconvertible ISBNs
                     pass
-            logging.warning(isbn10)
 
         publisher = entry.get(PUBLISHER)
         binding = entry.get(FORMAT)
