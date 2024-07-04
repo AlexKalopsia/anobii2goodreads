@@ -6,16 +6,14 @@ to a CSV similar to Goodreads export, which could be imported on Goodreads [The 
 > [!WARNING]
 > The script has been updated to have valid data structure as of **July 2024**.
 
-
 _This is an updated and slightly modified version of [shaform/anobii2goodreads](https://github.com/shaform/anobii2goodreads),
 which was in turn inspired by [tijs/Anobii2Goodreads](https://github.com/tijs/Anobii2Goodreads)._
-
 
 ## Usage
 
 ### 1. Export
 
-Go on your Anobii profile and export your data as CSV. 
+Go on your Anobii profile and export your data as CSV.
 
 > [!NOTE]
 > Sometimes Anobii seemingly exports encrypted CSVs that can't be dealt with, so you might need to export as `.xls` and then convert the file to `.csv`
@@ -37,7 +35,7 @@ To convert `anobii.csv` to `anobii_converted.csv`, run the following command:
 > |---------------|---------------|--------------------------------------------------------------------------------------------------|
 > | `-l LANG`     | `en`, `zh-tw` | Language of the csv tables. Defaults to `en`.                                                    |
 > | `-o`          |               | Keep only the ISBN, preventing Goodreads from auto-matching books that may have different ISBNs. |
-> 
+>
 > For instance, running `python3 anobii2goodreads/anobii2goodreads.py -l zh-tw -o anobii.csv anobii_converted.csv` would tell the script to use a csv with taiwanese headings, and only export ISBN codes with no author and title data.
 
 ---
@@ -56,7 +54,7 @@ Go on [The StoryGraph](https://www.thestorygraph.com/), visit your Profile, navi
 
 ### 4. Add missing books (optional)
 
-Sometimes, certain books may not be present in the Goodreads database, so you might accidentally be missing some books. 
+Sometimes, certain books may not be present in the Goodreads database, so you might accidentally be missing some books.
 In that case, go to the Goodreads [Import/Export](https://www.goodreads.com/review/import) page, and press the Export Library button to get a `goodreads_exported.csv` file.
 You can then use `auto_add.py` to compare your original file `anobii_converted.csv` and `goodreads_exported.csv`, to add the non-imported books:
 
