@@ -5,7 +5,7 @@ Another script to convert a CSV export from the Anobii website
 to a CSV similar to Goodreads export, which could be imported on Goodreads via
 the [import page](http://www.goodreads.com/review/import), or on [The StoryGraph](https://www.thestorygraph.com/) (Manage Account > Goodreads Import).
 
-> [!IMPORTANT]
+> [!WARNING]
 > The script has been updated to have valid data structure as of **July 2024**.
 
 Inspired by https://github.com/tijs/Anobii2Goodreads.
