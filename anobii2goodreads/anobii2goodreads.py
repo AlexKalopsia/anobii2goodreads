@@ -44,12 +44,6 @@ class Anobii2GoodReads(object):
 
     @staticmethod
     def _parse_status(status):
-        text = status[:-10].rstrip()
-        date = status[-10:].replace('-','/')
-        return text, date
-
-    @staticmethod
-    def _parse_status_ext(status):
         pattern = re.compile(r'(.+?)(\d{4}-\d{2}(?:-\d{2})?)')
         match = pattern.search(status)
         text, date = '',''
@@ -140,7 +134,7 @@ class Anobii2GoodReads(object):
 
     def _convert_status(self, status, tags):
         if status:
-            text, date = self._parse_status_ext(status)
+            text, date = self._parse_status(status)
             if tags is not None:
                 tag_items = {tag.strip() for tag in tags.split('/')}
             else:
@@ -249,7 +243,8 @@ class Anobii2GoodReads(object):
 
         bookshelves_w_pos = '' if exclusive_shelf != 'to-read' else 'to-read (#' + str(index) + ')'
         read_count = 0 if exclusive_shelf == 'to-read' else 1
-        owned_copies = 0 if exclusive_shelf == 'to-read' else 1
+        #owned_copies = 0 if exclusive_shelf == 'to-read' else 1
+        owned_copies = 1
 
         if self.only_isbn:
             book_id = ''
@@ -269,10 +264,11 @@ class Anobii2GoodReads(object):
                 bookshelves_w_pos, exclusive_shelf, my_review, spoiler, private_notes,
                 read_count, owned_copies)
 
-    def __init__(self, *, detect_strings, headers, only_isbn):
+    def __init__(self, *, detect_strings, headers, only_isbn, missing_isbn):
         self.detect_strings = detect_strings
         self.headers = headers
         self.only_isbn = only_isbn
+        self.missing_isbn = missing_isbn
 
 
 def parse_args():
@@ -290,6 +286,10 @@ def parse_args():
                         '--only-isbn',
                         action='store_true',
                         help='Keep only ISBN, discard book info.')
+    parser.add_argument('-m',
+                        '--missing-isbn',
+                        action='store_true',
+                        help='Including entries with missing ISBN.')
     parser.add_argument('input_file',
                         metavar='anobii_csv',
                         help='aNobii CSV file')
@@ -313,14 +313,14 @@ def main():
         goodreads_writer = csv.writer(goodread_csv)
         a2g = Anobii2GoodReads(
             detect_strings=CONFIG['detect_strings'][args.lang],
-            headers=CONFIG['headers'][args.lang], only_isbn=args.only_isbn)
+            headers=CONFIG['headers'][args.lang], only_isbn=args.only_isbn, missing_isbn=args.missing_isbn)
 
         not_convertable = []
         goodreads_writer.writerow(a2g.OUTPUT_HEADERS)
         for entry in anobii_reader:
             isbn = entry.get('ISBN')
             # Skip book with no ISBN provided
-            if not isbn:
+            if not isbn and not args.missing_isbn:
                 not_convertable.append(entry)
                 continue
 
