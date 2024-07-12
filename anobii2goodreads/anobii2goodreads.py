@@ -20,6 +20,8 @@ class Anobii2GoodReads(object):
                       'My Review', 'Spoiler', 'Private Notes', 'Read Count',
                       'Owned Copies']
 
+    shelf_index = 0
+
     @staticmethod
     def _convert_linebreak(line):
         """Convert linkbreak in aNobii to HTML <br> tags."""
@@ -45,6 +47,37 @@ class Anobii2GoodReads(object):
         text = status[:-10].rstrip()
         date = status[-10:].replace('-','/')
         return text, date
+
+    @staticmethod
+    def _parse_status_ext(status):
+        pattern = re.compile(r'(.+?)(\d{4}-\d{2}(?:-\d{2})?)')
+        match = pattern.search(status)
+        text, date = '',''
+        if match:
+            text = match.group(1).strip()
+            date = match.group(2).replace('-','/')
+            date_parts = date.split('/')
+            if len(date_parts) == 2: #yyyy/mm
+                date = f"{date_parts[0]}/{date_parts[1]}/01"
+            #elif len(date_parts) == 1:  # Only year is present, which should not happen with the given pattern
+            #    date_part = f"{date_parts[0]}/01/01"
+
+
+        return text, date
+
+    @staticmethod
+    def _convert_author(author):
+        parts = author.split()
+        if len(parts) == 0:
+            author_lf = author
+        elif len(parts) == 2:
+            first, last = parts
+            author_lf = f"{last}, {first}"
+        else:
+            first = " ".join(parts[:-1])
+            last = parts[-1]
+            author_lf = f"{last}, {first}"
+        return author_lf
 
     @staticmethod
     def _convert_date(status):
@@ -103,11 +136,11 @@ class Anobii2GoodReads(object):
             bookshelves = ['abandoned']
             date_added = date
 
-        return date_read, date_added, bookshelves
+        return date_read, date_added, bookshelves, self.shelf_index
 
     def _convert_status(self, status, tags):
         if status:
-            text, date = self._parse_status(status)
+            text, date = self._parse_status_ext(status)
             if tags is not None:
                 tag_items = {tag.strip() for tag in tags.split('/')}
             else:
@@ -119,7 +152,8 @@ class Anobii2GoodReads(object):
             else:
                 return self._detect_status(date, text)
         else:
-            return None, '2024/01/01', ['to-read']
+            self.shelf_index += 1
+            return None, '2024/01/01', ['to-read'], self.shelf_index
 
     def convert_entry(self, entry):
         ISBN, TITLE, SUBTITLE = 'ISBN', 'Title', 'Subtitle' 
@@ -150,7 +184,7 @@ class Anobii2GoodReads(object):
 
         title = entry.get(TITLE)
 
-        author, author_lf, additional_authors = None, '', None
+        author, author_lf, additional_authors = None, None, None
         if AUTHOR in entry:
             all_authors = list(map(str.strip, entry[AUTHOR].split(',')))
             if len(all_authors) > 0:
@@ -158,7 +192,9 @@ class Anobii2GoodReads(object):
             if len(all_authors) > 1:
                 additional_authors = ', '.join(all_authors[1:])
 
-        book_id = ''
+            author_lf = self._convert_author(author)
+
+        book_id = 0
         isbn = entry.get(ISBN)
         isbn13 = None
         isbn10 = None
@@ -185,22 +221,25 @@ class Anobii2GoodReads(object):
 
         year_published = entry.get(PUB_DATE)
         if year_published:
-            year_published = year_published.replace('-', '/').replace('xx','01')
+            # Only get YYYY from YYYY/MM/DD
+            year_published = year_published.replace('-', '/').replace('xx','01')[0:4] 
         original_year_published = ''
 
         private_notes = self._convert_linebreak(entry.get(PRIVATE_NOTES))
 
         my_rating = entry.get(VOTE)
-        avg_rating = ''
+        if my_rating == '':
+            my_rating = 0 
+            
+        avg_rating = 0
         my_review = self._convert_comment(
             entry.get(COMMENT_TITLE), entry.get(COMMENT_CONTENT))
 
         spoiler = ''
         tags = entry.get(TAGS)
         status = entry.get(STATUS)
-        date_read, date_added, bookshelves = self._convert_status(status,
+        date_read, date_added, bookshelves, index = self._convert_status(status,
                                                                     tags)
-        bookshelves_w_pos = ''
         exclusive_shelf = ''
 
         if len(bookshelves) == 0:
@@ -208,6 +247,7 @@ class Anobii2GoodReads(object):
         elif len(bookshelves) == 1:
             exclusive_shelf = bookshelves[0]
 
+        bookshelves_w_pos = '' if exclusive_shelf != 'to-read' else 'to-read (#' + str(index) + ')'
         read_count = 0 if exclusive_shelf == 'to-read' else 1
         owned_copies = 0 if exclusive_shelf == 'to-read' else 1
 
