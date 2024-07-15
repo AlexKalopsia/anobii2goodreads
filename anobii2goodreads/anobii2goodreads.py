@@ -51,11 +51,9 @@ class Anobii2GoodReads(object):
             text = match.group(1).strip()
             date = match.group(2).replace('-','/')
             date_parts = date.split('/')
+            # Add day in case it is missing int he original date
             if len(date_parts) == 2: #yyyy/mm
                 date = f"{date_parts[0]}/{date_parts[1]}/01"
-            #elif len(date_parts) == 1:  # Only year is present, which should not happen with the given pattern
-            #    date_part = f"{date_parts[0]}/01/01"
-
 
         return text, date
 
@@ -313,7 +311,8 @@ def main():
         goodreads_writer = csv.writer(goodread_csv)
         a2g = Anobii2GoodReads(
             detect_strings=CONFIG['detect_strings'][args.lang],
-            headers=CONFIG['headers'][args.lang], only_isbn=args.only_isbn, missing_isbn=args.missing_isbn)
+            headers=CONFIG['headers'][args.lang], only_isbn=args.only_isbn, 
+                    missing_isbn=args.missing_isbn)
 
         not_convertable = []
         goodreads_writer.writerow(a2g.OUTPUT_HEADERS)

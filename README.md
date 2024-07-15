@@ -35,6 +35,7 @@ To convert `anobii.csv` to `anobii_converted.csv`, run the following command:
 > |---------------|---------------|--------------------------------------------------------------------------------------------------|
 > | `-l LANG`     | `en`, `zh-tw` | Language of the csv tables. Defaults to `en`.                                                    |
 > | `-o`          |               | Keep only the ISBN, preventing Goodreads from auto-matching books that may have different ISBNs. |
+> | `-m`          |               | Include books with missing ISBN. By default, they will not be included in the exported file.     |
 >
 > For instance, running `python3 anobii2goodreads/anobii2goodreads.py -l zh-tw -o anobii.csv anobii_converted.csv` would tell the script to use a csv with taiwanese headings, and only export ISBN codes with no author and title data.
 
